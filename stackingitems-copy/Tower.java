@@ -268,26 +268,28 @@ public class Tower
      */
     private void redraw() {
         int yActual = baseY;
+        int yTope = baseY; // tope visual real de la torre
         Cup anterior = null;
         Cup ultimaExterna = null;
-
+    
         for (Cup c : cups) {
             c.erase();
             c.eraseLid();
-            
+    
             if (anterior == null) {
                 c.setPosition(baseX, yActual);
                 c.setInside(false);
                 ultimaExterna = c;
+                yTope = getTop(c);
             } else {
                 boolean cabeAdentro = c.getNumber() <= ultimaExterna.getNumber() && !ultimaExterna.hasLidOn();
+    
                 if (c.getNumber() > ultimaExterna.getNumber()) {
-                    Cup base = getHighestAmong(c);
-                    yActual = getTop(base);
+                    yActual = yTope;
                     c.setInside(false);
                     ultimaExterna = c;
-                }
-                else if (cabeAdentro) {
+                    yTope = getTop(c);
+                } else if (cabeAdentro) {
                     if (anterior.isInside() && c.getNumber() < anterior.getNumber()) {
                         yActual = anterior.getYPosition() - 7;
                     } else {
@@ -296,32 +298,28 @@ public class Tower
                             : ultimaExterna.getYPosition() - 7;
                     }
                     c.setInside(true);
-                }
-                else {
-                    Cup base = getHighestAmong(c);
-                    if (base == null) base = ultimaExterna;
-                    yActual = getTop(base) ;
+                    // actualizar yTope si esta copa sobresale
+                    int topC = c.getYPosition() - c.getHeight() * 5;
+                    if (topC < yTope) yTope = topC;
+                } else {
+                    yActual = yTope;
                     c.setInside(false);
                     ultimaExterna = c;
+                    yTope = getTop(c);
                 }
                 c.setPosition(baseX, yActual);
             }
-        
-
-            if (isVisible){
+    
+            if (isVisible) {
                 c.makeVisible();
-                if (c.hasLidOn()) 
-                c.showLid();
+                if (c.hasLidOn()) c.showLid();
             }
-
             anterior = c;
         }
-
-        // Redibujar tapas activas
+    
         if (isVisible) {
             for (Cup c : cups) {
-                if (c.hasLidOn()) 
-                c.showLid();
+                if (c.hasLidOn()) c.showLid();
             }
         }
     }
@@ -347,14 +345,12 @@ public class Tower
         }
     }
     
-    private Cup getHighestAmong(Cup limite)
-    {
+    private Cup getHighestAmong(Cup limite) {
         Cup masAlta = null;
         for (Cup c : cups) {
             if (c == limite) break;
-            if (masAlta == null || getTop(c) < getTop(masAlta)) {
-                masAlta = c;
-            }
+            if (c.isInside()) continue; // ignorar copas internas
+            if (masAlta == null || getTop(c) < getTop(masAlta)) masAlta = c;
         }
         return masAlta;
     }
@@ -364,7 +360,7 @@ public class Tower
     /**
      * Obtiene la altura de la torre
      */
-    public int getHeight(){
+    public int getHeight() {
         int total = 0;
         for (Cup c : cups){
             if (!c.isInside()) {
