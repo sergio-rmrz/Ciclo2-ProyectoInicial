@@ -3,7 +3,7 @@ import java.awt.*;
  * Write a description of class Lid here.
  * 
  * @author Yazid Sánchez - Sergio Ramírez
- * @version 1.0
+ * @version 2.6
  */
 public class Lid
 {
@@ -22,6 +22,9 @@ public class Lid
     /** Indica si la tapa está visible en pantalla */
     private boolean isVisible;
     /** nuevo indicativo*/ 
+    
+    
+    private boolean inside = false;
     
     private static final int PIXEL_POR_CM = 5;
     
@@ -119,6 +122,10 @@ public class Lid
     return color;
     }
     
+    public int getYPosition() {
+    return yPosition;
+    }
+
     /**
      * Establece una nueva posición sin redibujar de manera inmediata
      * @param x Nueva posición horizontal
@@ -128,7 +135,10 @@ public class Lid
         xPosition = x;
         yPosition = y;
     }
-    
+    public boolean isInside() {
+        return inside; }
+    public void setInside(boolean inside) {
+        this.inside = inside; }
     /**
      * Dibuja la tapa en pantalla utilizando un rectángulo.   
     */
