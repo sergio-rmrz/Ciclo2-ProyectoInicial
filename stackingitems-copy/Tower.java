@@ -486,16 +486,15 @@ public class Tower
     {
         int yActual = baseY;
         int yTope = baseY;
+        int yTopeInterno = baseY;
         Cup anteriorCup = null;
         Lid anteriorLid = null;
         Cup ultimaExterna = null;
         Cup ultimaInterna = null;
         boolean primerElemento = true;
 
-        for (Cup c : cups) {
-            c.erase(); c.eraseLid(); 
-        }
-        for (Lid l : looseLids)l.erase();
+        for (Cup c : cups) { c.erase(); c.eraseLid(); }
+        for (Lid l : looseLids) l.erase();
 
         for (Object obj : insertionOrder) {
             boolean esCup = (obj instanceof Cup);
@@ -504,9 +503,15 @@ public class Tower
 
             int extNum   = (ultimaExterna != null) ? ultimaExterna.getNumber() : 0;
             boolean extLid = (ultimaExterna != null) && ultimaExterna.hasLidOn();
-            boolean bloqueadaPorLid = (anteriorLid != null) && anteriorLid.getNumber() >= extNum;
+            boolean bloqueadaPorLid = false;
+            for (int i = insertionOrder.indexOf(obj) - 1; i >= 0; i--) {
+                Object prev = insertionOrder.get(i);
+                if (prev instanceof Cup) break;
+                if (prev instanceof Lid && ((Lid)prev).getNumber() >= extNum) { bloqueadaPorLid = true; break; }
+            }
             int intNum = (ultimaInterna != null) ? ultimaInterna.getNumber() : 0;
             boolean cabeAdentro = number < extNum && !extLid && !bloqueadaPorLid && (ultimaInterna == null || number < intNum);
+            boolean encimaDentro = ultimaInterna != null && number < extNum && !extLid && number >= intNum;
 
             int antNum  = anteriorCup != null ? anteriorCup.getNumber() : (anteriorLid != null ? anteriorLid.getNumber() : 0);
             boolean antIn = anteriorCup != null ? anteriorCup.isInside() : (anteriorLid != null ? anteriorLid.isInside() : false);
@@ -514,23 +519,22 @@ public class Tower
             int antSize = anteriorCup != null ? anteriorCup.getHeight() : 1;
 
             if (primerElemento) {
-                // Primer elemento, esto es si la torre está vacia y lo implementamos para que se puedan poner tapas sueltas en la torre
+                // Primer elemento (principio del tower
                 primerElemento = false;
-                yActual = yTope;
+                yActual = baseY;
                 if (esCup) { ((Cup)obj).setInside(false); ultimaExterna = (Cup)obj; ultimaInterna = null; }
                 else ((Lid)obj).setInside(false);
                 yTope = esCup ? baseY - size * 5 : baseY - 5;
+                yTopeInterno = baseY;
             } else if (number > extNum) {
-                // Si es más grande que el elemento externo, va por encima de todo
+                // Más grande que la externa, por ende, va encima de todo
                 yActual = yTope;
                 if (esCup) { ((Cup)obj).setInside(false); ultimaExterna = (Cup)obj; ultimaInterna = null; }
                 else ((Lid)obj).setInside(false);
                 yTope = esCup ? yActual - size * 5 : yActual - 5;
-                if (esCup) { ((Cup)obj).setInside(false); ultimaExterna = (Cup)obj; ultimaInterna = null; }
-                else ((Lid)obj).setInside(false);
-                yTope = esCup ? yActual - size * 5 : yActual - 5;
+                yTopeInterno = baseY;
             } else if (cabeAdentro) {
-                // Caso en el que cabe por dentro de ultimaExterna pero tambien es menor que ulitmaInterna
+                // Cabe dentro de ultimaExterna y es menor que ultimaInterna
                 if (antIn && number < antNum) {
                     yActual = antY - 7;
                 } else if (antIn && number >= antNum) {
@@ -538,23 +542,32 @@ public class Tower
                 } else {
                     yActual = ultimaExterna.getYPosition() - 7;
                 }
-                if (esCup) { ((Cup)obj).setInside(true); ultimaInterna = (Cup)obj; }
+                if (esCup) { ((Cup)obj).setInside(true); if (ultimaInterna == null || number > intNum) ultimaInterna = (Cup)obj; }
                 else ((Lid)obj).setInside(true);
                 int topC = esCup ? yActual - size * 5 : yActual - 5;
                 if (topC < yTope) yTope = topC;
-                //Para la tapa dentro de otra tapa, el >= de abajo 
-            } else if (ultimaInterna != null && number < extNum && !extLid && number >= intNum) {  
-                yActual = ultimaInterna.getYPosition() - ultimaInterna.getHeight() * 5;
+                if (esCup && topC < yTopeInterno) yTopeInterno = topC;
+            } else if (encimaDentro) {
+                // Va encima de ultimaInterna pero dentro de ultimaExterna
+                if (!esCup && anteriorLid != null && anteriorLid.isInside() && number != intNum) {
+                    yActual = anteriorLid.getYPosition();
+                } else if (esCup && anteriorLid != null && anteriorLid.isInside()) {
+                    yActual = anteriorLid.getYPosition();
+                } else {
+                    yActual = ultimaInterna.getYPosition() - ultimaInterna.getHeight() * 5;
+                }
                 if (esCup) { ((Cup)obj).setInside(true); ultimaInterna = (Cup)obj; }
                 else ((Lid)obj).setInside(true);
                 int topC2 = esCup ? yActual - size * 5 : yActual - 5;
-                yTope = topC2;
+                if (topC2 < yTope) yTope = topC2;
+                if (esCup && topC2 < yTopeInterno) yTopeInterno = topC2;
             } else {
-                // No cabe adentro, por ende, va arriba
+                // No cabe adentro, por ende, va como externo
                 yActual = yTope;
                 if (esCup) { ((Cup)obj).setInside(false); ultimaExterna = (Cup)obj; ultimaInterna = null; }
                 else ((Lid)obj).setInside(false);
                 yTope = esCup ? yActual - size * 5 : yActual - 5;
+                yTopeInterno = baseY;
             }
 
             if (esCup) {
